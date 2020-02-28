@@ -1,6 +1,6 @@
 module Token where
 import Data.Char
-data LToken = NumLit Int | VarLit String | Equal | Plus | Minus | Multi | Divide | T | F | Define | If | Cond | Lambda | Else | Let | And | Or | Not | Par [LToken] deriving (Eq, Show)
+data LToken = NumLit Int | VarLit String | Equal | Plus | Minus | Multi | Divide | Define | If | Cond | Lambda | Else | Let | And | Or | Not | Par [LToken] deriving (Eq, Show)
 
 _splitP :: String -> String -> Int -> (String, String)
 _splitP ('(' : xs) str cnt = _splitP xs (str ++ ['(']) $ cnt + 1
@@ -29,8 +29,6 @@ getToken s
   | ts == "*" = Multi
   | ts == "/" = Divide
   | ts == "=" = Equal
-  | ts == "true" = T
-  | ts == "false" = F
   | ts == "define" = Define
   | ts == "if" = If
   | ts == "cond" = Cond
