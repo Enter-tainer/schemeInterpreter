@@ -47,6 +47,31 @@ _evalE ctx (Par [Divide, x, y]) = do
   let (NumLit xx) = xv
   let (NumLit yy) = yv
   return $ NumLit $ (xx `div` yy)
+_evalE ctx (Par [Equal, x, y]) = do
+  xv <- _evalE ctx x
+  yv <- _evalE ctx y
+  if xv == yv then
+    return $ NumLit 1
+  else
+    return $ NumLit 0
+_evalE ctx (Par [And, x, y]) = do
+  xv <- _evalE ctx x
+  yv <- _evalE ctx y
+  if xv /= NumLit 0 && yv /= NumLit 0 then
+    return $ NumLit 1
+  else
+    return $ NumLit 0
+_evalE ctx (Par [Or, x, y]) = do
+  xv <- _evalE ctx x
+  yv <- _evalE ctx y
+  if xv /= NumLit 0 || yv /= NumLit 0
+    then return $ NumLit 1
+    else return $ NumLit 0
+_evalE ctx (Par [Not, x]) = do
+  xv <- _evalE ctx x
+  if xv == NumLit 0
+    then return $ NumLit 1
+    else return $ NumLit 0
 _evalE ctx (Par [x]) = _evalE ctx x
 _evalE ctx (NumLit x) = return $ NumLit x
 _evalE _ _ = undefined
