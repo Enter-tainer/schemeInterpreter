@@ -1,6 +1,7 @@
 module Eval where
 import           Token
-import           Control.Monad
+import           Control.Monad()
+import           Debug.Trace
 import qualified Data.Map.Strict               as M
 
 maybeToEither :: e -> Maybe a -> Either e a
@@ -14,8 +15,17 @@ bindPara :: [LToken] -> [LToken] -> Context -> Either String Context
 bindPara [] _ ctx = return ctx
 bindPara _ [] ctx = return ctx
 bindPara (x:xs) (y:ys) ctx = do
-  yv <- _evalE ctx y
-  bindPara xs ys $ bind1 x yv ctx
+  case y of
+    (VarLit _) -> do
+      (para, _) <- maybeToEither "No such variable or function" $ M.lookup y ctx
+      if para == [] then do
+        yv <- _evalE ctx y
+        bindPara xs ys $ bind1 x yv ctx
+      else
+        bindPara xs ys $ bind1 x y ctx
+    _ -> do
+      yv <- _evalE ctx y
+      bindPara xs ys $ bind1 x yv ctx
   where
     bind1 tk1 s vctx = M.insert tk1 ([], s) vctx
 
@@ -41,8 +51,10 @@ eval str = do
   return r
     where
       transT (a, b, c) = (a, (b, c))
-
 _evalE :: Context -> LToken -> Either String LToken
+
+_evalE ctx (Par [Lambda, (Par para), x]) = error "not implemented"
+
 _evalE ctx (Par [Plus, x, y]) = do
   xv <- _evalE ctx x
   yv <- _evalE ctx y
