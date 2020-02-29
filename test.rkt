@@ -12,3 +12,4 @@
 
 (define (fact n) (if (= 1 n) 1 (* n (fact (- n 1))))) (fact 5)
 (define (app f n) (f n)) (app fib 5)
+(define (app f n) (f n)) (define (appp app f n) (app f n)) (appp app fib 5)

@@ -17,17 +17,18 @@ bindPara _ [] ctx = return ctx
 bindPara (x:xs) (y:ys) ctx = do
   case y of
     (VarLit _) -> do
-      (para, _) <- maybeToEither "No such variable or function" $ M.lookup y ctx
+      (para, def) <- maybeToEither "No such variable or function" $ M.lookup y ctx
       if para == [] then do
         yv <- _evalE ctx y
-        bindPara xs ys $ bind1 x yv ctx
+        bindPara xs ys $ bindv x yv ctx
       else
-        bindPara xs ys $ bind1 x y ctx
+        bindPara xs ys $ bindf x para def ctx
     _ -> do
       yv <- _evalE ctx y
-      bindPara xs ys $ bind1 x yv ctx
+      bindPara xs ys $ bindv x yv ctx
   where
-    bind1 tk1 s vctx = M.insert tk1 ([], s) vctx
+    bindv tk1 s vctx = M.insert tk1 ([], s) vctx
+    bindf tk1 param def vctx = M.insert tk1 (param, def) vctx
 
 getDef :: LToken -> Either String (LToken, [LToken], LToken)
 getDef (Par [Define, (Par (name : para)), (Par x)]) = Right (name, para, Par x)
@@ -41,7 +42,8 @@ isDef :: LToken -> Bool
 isDef (Par (Define : _)) = True
 isDef (Par [x         ]) = isDef x
 isDef _                  = False
-
+tst =
+  "(define (fact n) 5) (define (app f n) (f n)) (define (appp app f n) (app f n)) (appp app fact 5)"
 eval :: String -> Either String Int
 eval str = do
   tk  <- tokenize str
