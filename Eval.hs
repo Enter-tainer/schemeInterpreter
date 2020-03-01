@@ -1,6 +1,6 @@
 module Eval where
 import           Token
-import           Control.Monad()
+import           Control.Monad                  ( )
 import qualified Data.Map.Strict               as M
 
 maybeToEither :: e -> Maybe a -> Either e a
@@ -11,25 +11,26 @@ type Context = M.Map LToken ([LToken], LToken) -- actually, VarLit and it's defi
 -- Map name (paraList, Defs)
 
 bindPara :: [LToken] -> [LToken] -> Context -> Either String Context
-bindPara [] _ ctx = return ctx
-bindPara _ [] ctx = return ctx
-bindPara (x:xs) (y:ys) ctx = do
+bindPara []       _        ctx = return ctx
+bindPara _        []       ctx = return ctx
+bindPara (x : xs) (y : ys) ctx = do
   case y of
     (VarLit _) -> do
-      (para, def) <- maybeToEither "No such variable or function" $ M.lookup y ctx
-      if para == [] then do
-        yv <- _evalE ctx y
-        bindPara xs ys $ bindv x yv ctx
-      else
-        bindPara xs ys $ bindf x para def ctx
+      (para, def) <- maybeToEither "No such variable or function"
+        $ M.lookup y ctx
+      if para == []
+        then do
+          yv <- _evalE ctx y
+          bindPara xs ys $ bindv x yv ctx
+        else bindPara xs ys $ bindf x para def ctx
     (Par [Lambda, (Par para), def]) -> do
       bindPara xs ys $ bindf x para def ctx
     _ -> do
       yv <- _evalE ctx y
       bindPara xs ys $ bindv x yv ctx
-  where
-    bindv tk1 s vctx = M.insert tk1 ([], s) vctx
-    bindf tk1 param def vctx = M.insert tk1 (param, def) vctx
+ where
+  bindv tk1 s vctx = M.insert tk1 ([], s) vctx
+  bindf tk1 param def vctx = M.insert tk1 (param, def) vctx
 
 getDef :: LToken -> Either String (LToken, [LToken], LToken)
 getDef (Par [Define, (Par (name : para)), (Par x)]) = Right (name, para, Par x)
@@ -50,11 +51,8 @@ eval str = do
   res <- _evalE (M.fromList $ transT <$> ctx) $ head $ filter (not . isDef) tk
   let NumLit r = res
   return r
-    where
-      transT (a, b, c) = (a, (b, c))
+  where transT (a, b, c) = (a, (b, c))
 _evalE :: Context -> LToken -> Either String LToken
-
-_evalE ctx (Par [Lambda, (Par para), x]) = error "not implemented"
 
 _evalE ctx (Par [Plus, x, y]) = do
   xv <- _evalE ctx x
@@ -131,14 +129,22 @@ _evalE ctx (Par [If, c, x, y]) = do
   cv <- _evalE ctx c
   if cv /= NumLit 0 then _evalE ctx x else _evalE ctx y
 
-_evalE ctx x@(VarLit _) = do
+_evalE _   (Par (Cond                   : [])) = Left "No branch match"
+_evalE ctx (Par (Cond : (Par [Else, v]) : _ )) = _evalE ctx v
+_evalE ctx (Par (Cond : (Par [c   , v]) : xs)) = do
+  cres <- _evalE ctx c
+  if cres /= NumLit 0 then _evalE ctx v else _evalE ctx (Par (Cond : xs))
+_evalE ctx (  Par    (Cond : (Par [x]) : xs)) = _evalE ctx (Par (Cond : x : xs))
+
+
+_evalE ctx x@(VarLit _                      ) = do
   (_, def) <- maybeToEither "No such variable" $ M.lookup x ctx
-  val  <- _evalE ctx def
+  val      <- _evalE ctx def
   return val
 
 _evalE ctx (Par (name@(VarLit _) : paraList)) = do
   (para, def) <- maybeToEither "No such function" $ M.lookup name ctx
-  newCtx <- bindPara para paraList ctx
+  newCtx      <- bindPara para paraList ctx
   _evalE newCtx def
 
 _evalE ctx (Par    [x]) = _evalE ctx x
