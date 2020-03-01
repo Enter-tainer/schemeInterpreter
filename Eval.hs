@@ -1,7 +1,6 @@
 module Eval where
 import           Token
 import           Control.Monad()
-import           Debug.Trace
 import qualified Data.Map.Strict               as M
 
 maybeToEither :: e -> Maybe a -> Either e a
@@ -23,6 +22,8 @@ bindPara (x:xs) (y:ys) ctx = do
         bindPara xs ys $ bindv x yv ctx
       else
         bindPara xs ys $ bindf x para def ctx
+    (Par [Lambda, (Par para), def]) -> do
+      bindPara xs ys $ bindf x para def ctx
     _ -> do
       yv <- _evalE ctx y
       bindPara xs ys $ bindv x yv ctx
@@ -42,8 +43,6 @@ isDef :: LToken -> Bool
 isDef (Par (Define : _)) = True
 isDef (Par [x         ]) = isDef x
 isDef _                  = False
-tst =
-  "(define (fact n) 5) (define (app f n) (f n)) (define (appp app f n) (app f n)) (appp app fact 5)"
 eval :: String -> Either String Int
 eval str = do
   tk  <- tokenize str
